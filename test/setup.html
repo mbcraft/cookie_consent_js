@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>HumanJS cookies application configuration page</title>
+        <script type="text/javascript" src="../js/human.js"></script>
+        <link rel="stylesheet" href="../css/cookies.css" >
+    </head>
+    <body>
+        <script type="text/javascript">
+            cookies.setupApplicationCookies("an_app", "Loads sample html and js that colors the text in green.",[{id:"an_app_html_placeholder",type:"html",path:"html/part.html"},{id:"js_l_1",path:"js/jslib.js",type:"js"}]);
+            cookies.setupApplicationCookies("my_cookie_app", "Applies a blue coloring stylesheets.",[{id:"css_1",type:"css",path:"css/my.css"}]);
+            cookies.setupApplicationCookies("another_app", "Call an alert function, hides a div.",[{id:"js_l_2",path:"js/jslib1.js",type:"js"},{id:"js_l_3",path:"js/jslib2.js",type:"js"}]);
+        </script>
+        <h1>HumanJS cookie summary page</h1>
+        <div id="cookie_applications_placeholder"></div>
+        <script type="text/javascript">
+            cookies.showCookiePreferencesTable("Abilitata","Applicazione","Descrizione");
+        </script>
+        <a href="test.html">Go back to the test page</a>
+        <script type="text/javascript">
+            /*
+            Here, cookie banner is never shown (even if no cookies are set in the browser) 
+            because the cookies preferences table is rendered
+            before this call. So this call does actually nothing.
+            This is a safe behaviour since the cookie preference page is a 'special page'
+            about cookies since lets the user change his/her preferences about the cookies.
+            */
+            cookies.showCookieBanner("This website ......","Accetto");
+        </script>
+    </body>
+</html>
