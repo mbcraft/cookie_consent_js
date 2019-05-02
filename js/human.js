@@ -342,9 +342,13 @@ var cookies = {
         else
             xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 
-        xmlhttp.open("GET",spec.path,false);
+        xmlhttp.open("GET",spec.path,true);
         xmlhttp.send();
-        document.getElementById(spec.id).innerHTML = xmlhttp.responseText;
+        xmlhttp.onreadystatechange = function() {
+            if(this.readyState == this.DONE) {
+                document.getElementById(spec.id).innerHTML = this.responseText;
+            }
+        }
     },
     /**
      * Setup informations for a single 'cookie application'.
