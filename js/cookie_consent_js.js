@@ -4,11 +4,13 @@
  * Marco Bagnaresi - MBCRAFT di Marco Bagnaresi
  * http://www.mbcraft.it
  * 
- * Version : 2.4.0
+ * Version : 2.5.0
  * 
  * Contains parts from Cookies.js from https://github.com/ScottHamper/Cookies 
  * (THANKS!!!) - Code was public domain
  * 
+ * Updated to match the requirements of the cookie law update of 10-06-2021.
+ * Removed the part that checked if the client was actually used by a human.
  */
 
 // -----------------------------
@@ -51,6 +53,9 @@ function __removeListener(obj, event_name, listener) {
 if (cookies!==undefined)
     throw "cookies variable is already defined.";
 
+/*
+Libreria di gestione dei cookies.
+*/
 var cookies = {
     // Used to ensure cookie keys do not collide with
     // built-in `Object` properties
@@ -163,25 +168,25 @@ var cookies = {
     // ---------------------------------------
     // Cookie policy banner, preferences, etc. 
     // ---------------------------------------
+    __cookieVersion: null,
     __cookiePreferencesTableShown: false,
     __cookieApplications: [],
     __loadedCss: [],
     __loadedJs: [],
     areAccepted : function() {
-        return this.areEnabled() && this.has("cookies_accepted") && this.get("cookies_accepted");
+        return this.areEnabled() && this.has("cookies_accepted") && this.get("cookies_accepted") && this.get("cookies_version") == this.__cookieVersion;
     },
     __removeCookieBanner: function() {
         var banner = document.getElementById('cookies_banner');
         if (banner !== null)
             document.body.removeChild(banner);
-        __removeListener(document,"scroll",cookies.__cookieScrollTracker);
-        __removeListener(document,"click",cookies.__cookieMouseClickTracker);
     },
     //set cookies as accepted (all)
     __acceptCookies: function(ev) {
         cookies.__removeCookieBanner();
         if (!cookies.has("cookies_accepted")) {
             cookies.set("cookies_accepted", "true");
+            cookies.set("cookies_version",this.__cookieVersion);
             //when accepted, hide banner and set all 'apps' as accepted
             for (i = 0; i < cookies.__cookieApplications.length; i++) {
                 var id = cookies.__cookieApplications[i].id;
@@ -195,6 +200,7 @@ var cookies = {
     __noCookies: function(ev) {
         cookies.__removeCookieBanner();
         cookies.set("cookies_accepted", "false");
+        cookies.set("cookies_version",this.__cookieVersion);
     },
     //notify will be async
     __notify: function(user_action, effect) {
@@ -350,6 +356,18 @@ var cookies = {
             }
         }
     },
+
+    /**
+     * Setup the cookie version used. When the cookies used from the application change, you need to increase the version number and
+     * update the setup phase for the cookies.
+     */
+    setupCookieVersion: function(version) {
+        cookies.__cookieVersion = version;
+        if (!cookies.has("cookies_version") || cookies.get("cookies_version")!=version) {
+            cookies.expireAll();
+        }
+    },
+
     /**
      * Setup informations for a single 'cookie application'.
      * Configuration information as 'enabled' or 'disabled' are saved into cookies.
@@ -375,6 +393,9 @@ var cookies = {
     showCookieBanner: function(html_text, ok_label) {
 
         if (!cookies.__cookiePreferencesTableShown && !cookies.has("cookies_accepted")) {
+            cookies.set("cookie_consent_js_screen_width", screen.width);
+            cookies.set("cookie_consent_js_screen_height", screen.height);
+
             var div_el = '<div id="cookies_banner">' +
                     '<div id="cookies_buttons_container">' +
                     '<input id="cookies_no_button" type="button" name="no_cookies" value="X" />' +
@@ -397,8 +418,6 @@ var cookies = {
             __addListener(no_cookies_button, "mousedown", cookies.__cookieCloseButtonTracker);
             __addListener(no_cookies_button, "click", cookies.__cookieCloseButtonTracker); //fix for accessibility
         
-            __addListener(document,"scroll",cookies.__cookieScrollTracker);
-            __addListener(document,"click",cookies.__cookieMouseClickTracker);
         }
         else if (cookies.get("cookies_accepted")==="true") {
             this.loadEnabledApplications();
@@ -415,146 +434,7 @@ var cookies = {
     __cookieAcceptButtonTracker: function(ev) {
         cookies.__acceptCookies(ev);
         cookies.__notify("ACCEPT_BUTTON","ALLOW-*");
-    },
-    __cookieMouseClickTracker: function(ev) {
-        //also accept cookies if cookie preference table is not shown
-        if (!cookies.__cookiePreferencesTableShown) {
-            cookies.__acceptCookies(null);
-            cookies.__notify("PAGE","ALLOW-*");
-        }
-    },
-    __cookieScrollTracker: function(ev) {
-        //also accept cookies if cookie preference table is not shown
-        if (!cookies.__cookiePreferencesTableShown) {
-            cookies.__acceptCookies(null);
-            cookies.__notify("SCROLL","ALLOW-*");
-        }
     }
 };
 
-// humanjs -- BEGIN --
-
-if (humanjs!==undefined)
-    throw "cookies variable is already defined.";
-
-var humanjs = {
-    // -----------------------------
-    // human recognition starts here
-    // -----------------------------
-    //variables
-    __requiredScore: 1000,
-    __trackingElement: null,
-    __intervalCallback: null,
-    __okCallback: null,
-    //functions
-    __install: function(elem) {
-        this.__setScore(0);
-        this.__trackingElement = elem;
-        __addListener(this.__trackingElement, "mousemove", this.__mouseMoveTracker);
-        __addListener(this.__trackingElement, "click", this.__mouseClickTracker);
-        __addListener(this.__trackingElement, "dblclick", this.__doubleClickTracker);
-        __addListener(this.__trackingElement, "keydown", this.__keyDownTracker);
-        __addListener(document, "scroll", this.__scrollTracker);
-        this.__intervalCallback = setInterval(this.__intervalTracker, 1000);
-
-        cookies.set("humanjs_screen_width", screen.width);
-        cookies.set("humanjs_screen_height", screen.height);
-    },
-    __setScore: function(score) {
-        cookies.set("humanjs_score", score);
-    },
-    __getScore: function() {
-        if (cookies.has("humanjs_score"))
-            return parseInt(cookies.get("humanjs_score"));
-        else {
-            this.__setScore(0);
-            return 0;
-        }
-    },
-    __setAsVerified: function() {
-        cookies.set("humanjs_status", "verified");
-    },
-    __dispose: function() {
-        __removeListener(this.__trackingElement, "mousemove", this.__mouseMoveTracker);
-        __removeListener(this.__trackingElement, "click", this.__mouseClickTracker);
-        __removeListener(this.__trackingElement, "dblclick", this.__doubleClickTracker);
-        __removeListener(this.__trackingElement, "keydown", this.__keyDownTracker);
-        __removeListener(this.__trackingElement, "scroll", this.__scrollTracker);
-        this.__trackingElement = null;
-        clearInterval(this.__intervalCallback);
-        this.__intervalCallback = null;
-    },
-    __isInstalled: function() {
-        return this.__trackingElement !== null;
-    },
-    __processOkCallback: function() {
-        if (this.__okCallback !== null)
-            this.__okCallback();
-    },
-    setupWithElement: function(element, callback, forceCallback) {
-        if (element === null)
-            throw "[HumanJS] Can't setup with a null element.";
-        this.__okCallback = callback;
-        if (!this.isVerified()) {
-            if (!this.__isInstalled()) {
-                this.__install(element);
-            }
-        } else {
-            if (forceCallback === true)
-                this.__processOkCallback();
-        }
-    },
-    setupWithId: function(element_id, callback, forceCallback) {
-        var el = document;
-        if (element_id !== null)
-            el = document.getElementById(element_id);
-        if (el === null)
-            throw "[HumanJS] Unable to find element with id : " + element_id;
-        this.setupWithElement(el, callback, forceCallback);
-    },
-    setup: function(callback, forceCallback) {
-        this.setupWithId(null, callback, forceCallback);
-    },
-    isVerified: function() {
-        return cookies.has("humanjs_status") && cookies.get("humanjs_status") === "verified";
-    },
-    __checkHuman: function() {
-        if (this.__getScore() > this.__requiredScore)
-        {
-            if (!this.isVerified()) {
-                humanjs.__setAsVerified();
-                humanjs.__dispose();
-                humanjs.__processOkCallback();
-            }
-        }
-    },
-    resetVerified: function() {
-        cookies.expire("humanjs_status");
-        cookies.expire("humanjs_score");
-    },
-    __mouseMoveTracker: function(ev) {
-        humanjs.__setScore(humanjs.__getScore() + 5);
-        humanjs.__checkHuman();
-    },
-    __mouseClickTracker: function(ev) {
-        humanjs.__setScore(humanjs.__getScore() + 100);
-        humanjs.__checkHuman();
-    },
-    __doubleClickTracker: function(ev) {
-        humanjs.__setScore(humanjs.__getScore() + 200);
-        humanjs.__checkHuman();
-    },
-    __intervalTracker: function(ev) {
-        humanjs.__setScore(humanjs.__getScore() + 100); //works
-        humanjs.__checkHuman();
-    },
-    __scrollTracker: function(ev) {
-        humanjs.__setScore(humanjs.__getScore() + 20); //works
-        humanjs.__checkHuman();
-    },
-    __keyDownTracker: function(ev) {
-        humanjs.__setScore(humanjs.__getScore() + 150);
-        humanjs.__checkHuman();
-    }
-};
-// humanjs -- END --
+//--- cookie_consent_js END
